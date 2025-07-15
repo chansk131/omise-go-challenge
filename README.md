@@ -27,10 +27,8 @@ end.
 Example:
 
 ```sh
-$ cd $GOPATH/omise/go-tamboon
-$ go install -v .
-
-$ $GOPATH/bin/go-tamboon test.csv
+# run
+$ omise-go-challenge ./data/fng.1000.csv.rot128
 
 performing donations...
 done.
