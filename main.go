@@ -9,6 +9,7 @@ import (
 
 	"github.com/chansk131/omise-go-challenge/donate"
 	"github.com/chansk131/omise-go-challenge/songpahpa"
+	"github.com/chansk131/omise-go-challenge/summary"
 	"github.com/joho/godotenv"
 )
 
@@ -47,7 +48,8 @@ func main() {
 		close(donationChannel)
 	}()
 
-	for donation := range donationChannel {
-		fmt.Println(donation)
-	}
+	summary := summary.GetSummary(donationChannel)
+
+	fmt.Println("done.")
+	summary.Print()
 }
