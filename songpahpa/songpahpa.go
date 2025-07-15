@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/chansk131/omise-go-challenge/cipher"
 )
@@ -15,8 +16,8 @@ type SongPahPa struct {
 	Amount   int64
 	CCNumber string
 	CVV      string
-	ExpMonth string
-	ExpYear  string
+	ExpMonth time.Month
+	ExpYear  int
 }
 
 func ReadCSV(filepath string, songPahPaChannel chan<- *SongPahPa) {
@@ -57,13 +58,25 @@ func ReadCSV(filepath string, songPahPaChannel chan<- *SongPahPa) {
 			break
 		}
 
+		expMonthInt, err := strconv.Atoi(row[4])
+		if err != nil {
+			log.Println("Error parsing Month:", err)
+			break
+		}
+
+		expYear, err := strconv.Atoi(row[5])
+		if err != nil {
+			log.Println("Error parsing year:", err)
+			break
+		}
+
 		songPahPaChannel <- &SongPahPa{
 			Name:     row[0],
 			Amount:   amount,
 			CCNumber: row[2],
 			CVV:      row[3],
-			ExpMonth: row[4],
-			ExpYear:  row[5],
+			ExpMonth: time.Month(expMonthInt),
+			ExpYear:  expYear,
 		}
 	}
 }
