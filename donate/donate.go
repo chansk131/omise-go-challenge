@@ -55,6 +55,7 @@ func createCharge(client *omise.Client, songPahPa *songpahpa.SongPahPa) bool {
 		ExpirationYear:  songPahPa.ExpYear,
 		SecurityCode:    songPahPa.CVV,
 	}
+	log.Println(createToken)
 	if e := client.Do(token, createToken); e != nil {
 		log.Println(e)
 		return false
