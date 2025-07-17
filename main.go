@@ -33,8 +33,7 @@ func main() {
 
 	donationChannel := make(chan *donate.Donation)
 
-	const MAX_WORKER = 10
-	numWorkers := min(runtime.NumCPU(), MAX_WORKER)
+	numWorkers := runtime.NumCPU()
 	var wg sync.WaitGroup
 
 	for i := range numWorkers {
