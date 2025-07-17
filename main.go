@@ -23,7 +23,7 @@ func main() {
 
 	publicKey := os.Getenv("OMISE_PUBLIC_KEY")
 	secretKey := os.Getenv("OMISE_SECRET_KEY")
-	donationClient := donate.InitialiseClient(publicKey, secretKey)
+	donator := donate.Initialise(publicKey, secretKey)
 
 	fmt.Println("performing donations...")
 
@@ -41,7 +41,7 @@ func main() {
 		wg.Add(1)
 		go func(workerID int) {
 			defer wg.Done()
-			donate.Donate(donationClient, songPahPaChannel, donationChannel)
+			donator.Donate(songPahPaChannel, donationChannel)
 		}(i)
 	}
 

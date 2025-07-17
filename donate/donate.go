@@ -1,13 +1,16 @@
 package donate
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"log"
 	"time"
 
 	"github.com/chansk131/omise-go-challenge/songpahpa"
 	"github.com/omise/omise-go"
 	"github.com/omise/omise-go/operations"
+	"golang.org/x/time/rate"
 )
 
 type Donation struct {
@@ -16,7 +19,12 @@ type Donation struct {
 	Success bool
 }
 
-func InitialiseClient(publicKey string, secretKey string) *omise.Client {
+type Donator struct {
+	client  *omise.Client
+	limiter *rate.Limiter
+}
+
+func Initialise(publicKey string, secretKey string) *Donator {
 	if len(publicKey) == 0 || len(secretKey) == 0 {
 		panic(errors.New("your publicKey or secretKey is empty"))
 	}
@@ -25,14 +33,18 @@ func InitialiseClient(publicKey string, secretKey string) *omise.Client {
 	if err != nil {
 		log.Println(err)
 	}
-	return client
+
+	limiter := rate.NewLimiter(1, 1) // 1 req/s, burst of 1
+	return &Donator{client, limiter}
 }
 
-func Donate(client *omise.Client,
+func (d *Donator) Donate(
 	songPahPaChannel <-chan *songpahpa.SongPahPa,
 	summaryChannel chan<- *Donation) {
+
 	for songPahPa := range songPahPaChannel {
-		isSuccess := createCharge(client, songPahPa)
+
+		isSuccess := d.createCharge(songPahPa)
 		summaryChannel <- &Donation{
 			Name:    songPahPa.Name,
 			Amount:  songPahPa.Amount,
@@ -41,12 +53,16 @@ func Donate(client *omise.Client,
 	}
 }
 
-func createCharge(client *omise.Client, songPahPa *songpahpa.SongPahPa) bool {
+func (d *Donator) createCharge(songPahPa *songpahpa.SongPahPa) bool {
 	if songPahPa.ExpYear < time.Now().Year() {
 		return false
 	}
 
-	time.Sleep(200 * time.Millisecond)
+	err := d.limiter.Wait(context.Background())
+	if err != nil {
+		fmt.Println("Rate limiter error:", err)
+		return false
+	}
 
 	token, createToken := &omise.Token{}, &operations.CreateToken{
 		Name:            songPahPa.Name,
@@ -55,8 +71,7 @@ func createCharge(client *omise.Client, songPahPa *songpahpa.SongPahPa) bool {
 		ExpirationYear:  songPahPa.ExpYear,
 		SecurityCode:    songPahPa.CVV,
 	}
-	log.Println(createToken)
-	if e := client.Do(token, createToken); e != nil {
+	if e := d.client.Do(token, createToken); e != nil {
 		log.Println(e)
 		return false
 	}
@@ -66,7 +81,7 @@ func createCharge(client *omise.Client, songPahPa *songpahpa.SongPahPa) bool {
 		Currency: "thb",
 		Card:     token.ID,
 	}
-	if e := client.Do(charge, createCharge); e != nil {
+	if e := d.client.Do(charge, createCharge); e != nil {
 		log.Println(e)
 		return false
 	}
