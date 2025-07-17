@@ -28,7 +28,8 @@ func main() {
 	fmt.Println("performing donations...")
 
 	songPahPaChannel := make(chan *songpahpa.SongPahPa)
-	go songpahpa.ReadCSV(filepath, songPahPaChannel)
+	reader := songpahpa.InitialiseReader(filepath)
+	go songpahpa.ReadCSV(reader, songPahPaChannel)
 
 	donationChannel := make(chan *donate.Donation)
 

@@ -20,9 +20,7 @@ type SongPahPa struct {
 	ExpYear  int
 }
 
-func ReadCSV(filepath string, songPahPaChannel chan<- *SongPahPa) {
-	defer close(songPahPaChannel)
-
+func InitialiseReader(filepath string) *csv.Reader {
 	data, err := os.Open(filepath)
 	if err != nil {
 		log.Println(err)
@@ -35,8 +33,14 @@ func ReadCSV(filepath string, songPahPaChannel chan<- *SongPahPa) {
 
 	csvReader := csv.NewReader(reader)
 
+	return csvReader
+}
+
+func ReadCSV(csvReader *csv.Reader, songPahPaChannel chan<- *SongPahPa) {
+	defer close(songPahPaChannel)
+
 	// Skip the header
-	_, err = csvReader.Read()
+	_, err := csvReader.Read()
 	if err != nil {
 		log.Println("Error read csv:", err)
 		return
@@ -52,31 +56,41 @@ func ReadCSV(filepath string, songPahPaChannel chan<- *SongPahPa) {
 			break
 		}
 
-		amount, err := strconv.ParseInt(row[1], 10, 64)
+		songPahPa, err := ParseSongPahPa(row)
 		if err != nil {
-			log.Println("Error parsing Amount:", err)
-			break
+			continue
 		}
-
-		expMonthInt, err := strconv.Atoi(row[4])
-		if err != nil {
-			log.Println("Error parsing Month:", err)
-			break
-		}
-
-		expYear, err := strconv.Atoi(row[5])
-		if err != nil {
-			log.Println("Error parsing year:", err)
-			break
-		}
-
-		songPahPaChannel <- &SongPahPa{
-			Name:     row[0],
-			Amount:   amount,
-			CCNumber: row[2],
-			CVV:      row[3],
-			ExpMonth: time.Month(expMonthInt),
-			ExpYear:  expYear,
-		}
+		songPahPaChannel <- songPahPa
 	}
+}
+
+func ParseSongPahPa(row []string) (*SongPahPa, error) {
+	amount, err := strconv.ParseInt(row[1], 10, 64)
+	if err != nil {
+		log.Println("Error parsing Amount:", err)
+		return nil, err
+	}
+
+	expMonthInt, err := strconv.Atoi(row[4])
+	if err != nil {
+		log.Println("Error parsing Month:", err)
+		return nil, err
+	}
+
+	expYear, err := strconv.Atoi(row[5])
+	if err != nil {
+		log.Println("Error parsing year:", err)
+		return nil, err
+	}
+
+	songPahPa := &SongPahPa{
+		Name:     row[0],
+		Amount:   amount,
+		CCNumber: row[2],
+		CVV:      row[3],
+		ExpMonth: time.Month(expMonthInt),
+		ExpYear:  expYear,
+	}
+
+	return songPahPa, nil
 }
