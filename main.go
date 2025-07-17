@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"runtime"
-	"sync"
 
 	"github.com/chansk131/omise-go-challenge/donate"
 	"github.com/chansk131/omise-go-challenge/songpahpa"
@@ -32,22 +30,7 @@ func main() {
 	go songpahpa.ReadCSV(reader, songPahPaChannel)
 
 	donationChannel := make(chan *donate.Donation)
-
-	numWorkers := runtime.NumCPU()
-	var wg sync.WaitGroup
-
-	for i := range numWorkers {
-		wg.Add(1)
-		go func(workerID int) {
-			defer wg.Done()
-			donator.Donate(songPahPaChannel, donationChannel)
-		}(i)
-	}
-
-	go func() {
-		wg.Wait()
-		close(donationChannel)
-	}()
+	go donator.Donate(songPahPaChannel, donationChannel)
 
 	summary := summary.GetSummary(donationChannel)
 

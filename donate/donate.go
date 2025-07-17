@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"runtime"
+	"sync"
 	"time"
 
 	"github.com/chansk131/omise-go-challenge/songpahpa"
@@ -40,17 +42,28 @@ func Initialise(publicKey string, secretKey string) *Donator {
 
 func (d *Donator) Donate(
 	songPahPaChannel <-chan *songpahpa.SongPahPa,
-	summaryChannel chan<- *Donation) {
+	donationChannel chan<- *Donation) {
+	numWorkers := runtime.NumCPU()
+	var wg sync.WaitGroup
 
-	for songPahPa := range songPahPaChannel {
+	for i := range numWorkers {
+		wg.Add(1)
+		go func(workerID int) {
+			defer wg.Done()
 
-		isSuccess := d.createCharge(songPahPa)
-		summaryChannel <- &Donation{
-			Name:    songPahPa.Name,
-			Amount:  songPahPa.Amount,
-			Success: isSuccess,
-		}
+			for songPahPa := range songPahPaChannel {
+				isSuccess := d.createCharge(songPahPa)
+				donationChannel <- &Donation{
+					Name:    songPahPa.Name,
+					Amount:  songPahPa.Amount,
+					Success: isSuccess,
+				}
+			}
+		}(i)
 	}
+
+	wg.Wait()
+	close(donationChannel)
 }
 
 func (d *Donator) createCharge(songPahPa *songpahpa.SongPahPa) bool {
