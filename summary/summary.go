@@ -40,18 +40,25 @@ func GetSummary(donationChannel <-chan *donate.Donation) *Summary {
 
 		if donation.Success {
 			summary.Success += donation.Amount
-			sortTopDonors(donation, summary)
 		} else {
 			summary.Faulty += donation.Amount
 		}
+		sortTopDonors(donation, summary)
 	}
-	averageAmount := float64(summary.Total) / float64(summary.Count)
+	averageAmount := float64(0)
+	if summary.Count > 0 {
+		averageAmount = float64(summary.Total) / float64(summary.Count)
+	}
 	summary.Average = averageAmount
 
 	return summary
 }
 
 func sortTopDonors(donation *donate.Donation, summary *Summary) {
+	if !donation.Success {
+		return
+	}
+
 	if donation.Amount > summary.TopDonors[0].Amount {
 		summary.TopDonors[2] = summary.TopDonors[1]
 		summary.TopDonors[1] = summary.TopDonors[0]
